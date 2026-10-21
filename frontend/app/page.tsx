@@ -37,55 +37,67 @@ export default function Home() {
   const [error, setError] = useState("");
 
   const analyzeProfile = async () => {
-    if (!username.trim()) {
-      setError("Enter a GitHub username to get started.");
+    const cleanUsername = username.trim().replace(/^@/, "");
+
+    if (!cleanUsername) {
+      setError("Please enter a GitHub username.");
       return;
     }
 
+    const usernamePattern =
+      /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/;
+
+    if (!usernamePattern.test(cleanUsername)) {
+      setError(
+        "Invalid GitHub username. Use up to 39 letters, numbers, or single hyphens; don't start or end with a hyphen."
+      );
+      return;
+    }
+
+    if (loading) return;
+
+    setUsername(cleanUsername);
     setLoading(true);
     setError("");
     setProfile(null);
     setSkills(null);
 
-    const cleanUsername = username.trim();
-
     try {
-      // Fetch GitHub profile
+      if (!API_URL) {
+        throw new Error("The analyzer is not configured right now. Please try again later.");
+      }
+
       const profileResponse = await fetch(
-  `${API_URL}/api/github/users/${cleanUsername}`
-);
+        `${API_URL}/api/github/users/${encodeURIComponent(cleanUsername)}`
+      );
+
+      if (profileResponse.status === 404) {
+        setError("GitHub user not found. Check the username and try again.");
+        return;
+      }
 
       if (!profileResponse.ok) {
-        const errorData = await profileResponse.json().catch(() => null);
-
-        throw new Error(
-          errorData?.detail || "GitHub user could not be found."
-        );
+        throw new Error("Unable to retrieve this GitHub profile. Please try again.");
       }
 
       const profileData: Profile = await profileResponse.json();
 
-      setProfile(profileData);
-
-      // Fetch technical skills
       const skillsResponse = await fetch(
-  `${API_URL}/api/github/users/${cleanUsername}/skills`
-);
-      if (!skillsResponse.ok) {
-        const errorData = await skillsResponse.json().catch(() => null);
+        `${API_URL}/api/github/users/${encodeURIComponent(cleanUsername)}/skills`
+      );
 
-        throw new Error(
-          errorData?.detail || "Unable to analyze technical skills."
-        );
+      if (!skillsResponse.ok) {
+        throw new Error("Unable to analyze this profile's skills. Please try again.");
       }
 
       const skillsData: SkillsData = await skillsResponse.json();
 
+      setProfile(profileData);
       setSkills(skillsData);
     } catch (err) {
-      console.error("OpenSourceMate error:", err);
-
-      if (err instanceof Error) {
+      if (err instanceof TypeError) {
+        setError("Unable to connect. Check your internet connection and try again.");
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Something went wrong. Please try again.");
@@ -187,7 +199,7 @@ export default function Home() {
                     if (error) setError("");
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                    if (e.key === "Enter" && !loading) {
                       analyzeProfile();
                     }
                   }}

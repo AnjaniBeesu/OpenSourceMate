@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import GitHubLink from "../components/GitHubLink";
 
 type Profile = {
   username: string;
@@ -132,14 +133,7 @@ export default function Home() {
               Analyzer
             </a>
 
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition hover:text-white"
-            >
-              GitHub ↗
-            </a>
+            <GitHubLink className="transition hover:text-white"/>
           </div>
 
         </div>
@@ -492,6 +486,10 @@ export default function Home() {
           <p>
             Built for the open-source community.
           </p>
+
+          <GitHubLink className="transition hover:text-white">
+            View Repository ↗
+          </GitHubLink>
 
         </div>
       </footer>
